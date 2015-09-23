@@ -17,7 +17,7 @@ import java.io.IOException;
         MediaPlayer.OnPreparedListener{
 
 
-    public String videoPath = Environment.getExternalStorageDirectory().getPath()+"/godfather.mp4";
+    public String videoPath = Environment.getExternalStorageDirectory().getPath()+"/video.mp4";
     private TextureView textureView;
     private MediaPlayer mediaPlayer;
 

@@ -8,6 +8,8 @@
 #include <cstdlib>
 #include <cmath>
 
+#include "Matrix.h"
+
 #define LOG_TAG "libNative"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
@@ -17,10 +19,11 @@ static const char* VERTEX_SHADER = "attribute vec4 vPosition;"
 		"attribute vec4 vTexCoordinate;"
 		"uniform mat4 textureTransform;"
 		"varying vec2 v_TexCoordinate;"
-
-		"void main () {"
+		"uniform mat4 projectionMatrix;"
+		"uniform mat4 modelViewMatrix;"
+		"void main () {\n"
 		"    v_TexCoordinate = (textureTransform*vTexCoordinate).xy;"
-		"    gl_Position = vPosition;"
+		"    gl_Position = projectionMatrix * modelViewMatrix * vPosition;"
 		"}";
 /* [Vertex source] */
 
@@ -31,17 +34,66 @@ static const char* FRAGMENT_SHADER =
 				"uniform samplerExternalOES texture;"
 				"varying vec2 v_TexCoordinate;"
 
-				"void main () {"
-				"vec4 color = texture2D(texture, v_TexCoordinate);"
-				"gl_FragColor = color;"
+				"void main () {\n"
+				"	vec4 color = texture2D(texture, v_TexCoordinate);"
+				"	gl_FragColor = color;"
 				"}";
 /* [Fragment source] */
 
-const GLfloat vertices[] = { -1.0f, -1.0f, 0.0f, -1.0f, 1.0f, 0.0f, 1.0f,
-		1.0f, 0.0f, 1.0f, -1.0f, 0.0f };
+const GLfloat vertices[] = {-1.0f,  1.0f, -1.0f, /* Back. */
+        1.0f,  1.0f, -1.0f,
+       -1.0f, -1.0f, -1.0f,
+        1.0f, -1.0f, -1.0f,
+       -1.0f,  1.0f,  1.0f, /* Front. */
+        1.0f,  1.0f,  1.0f,
+       -1.0f, -1.0f,  1.0f,
+        1.0f, -1.0f,  1.0f,
+       -1.0f,  1.0f, -1.0f, /* Left. */
+       -1.0f, -1.0f, -1.0f,
+       -1.0f, -1.0f,  1.0f,
+       -1.0f,  1.0f,  1.0f,
+        1.0f,  1.0f, -1.0f, /* Right. */
+        1.0f, -1.0f, -1.0f,
+        1.0f, -1.0f,  1.0f,
+        1.0f,  1.0f,  1.0f,
+       -1.0f, 1.0f, -1.0f, /* Top. */
+       -1.0f, 1.0f,  1.0f,
+        1.0f, 1.0f,  1.0f,
+        1.0f, 1.0f, -1.0f,
+       -1.0f, - 1.0f, -1.0f, /* Bottom. */
+       -1.0f,  -1.0f,  1.0f,
+        1.0f, - 1.0f,  1.0f,
+        1.0f,  -1.0f, -1.0f
+      };
 
-const GLfloat textureCoords[] = { 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
-		1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f };
+const GLfloat textureCoords[] = { 1.0f, 1.0f, 0.0f, /* Back. */
+        0.0f, 1.0f,0.0f,
+        1.0f, 0.0f,0.0f,
+        0.0f, 0.0f,0.0f,
+        0.0f, 1.0f, 0.0f,/* Front. */
+        1.0f, 1.0f,0.0f,
+        0.0f, 0.0f,0.0f,
+        1.0f, 0.0f,0.0f,
+        0.0f, 1.0f, 0.0f,/* Left. */
+        0.0f, 0.0f,0.0f,
+        1.0f, 0.0f,0.0f,
+        1.0f, 1.0f,0.0f,
+        1.0f, 1.0f, 0.0f,/* Right. */
+        1.0f, 0.0f,0.0f,
+        0.0f, 0.0f,0.0f,
+        0.0f, 1.0f,0.0f,
+        0.0f, 1.0f, 0.0f,/* Top. */
+        0.0f, 0.0f,0.0f,
+        1.0f, 0.0f,0.0f,
+        1.0f, 1.0f,0.0f,
+        0.0f, 0.0f, 0.0f,/* Bottom. */
+        0.0f, 1.0f,0.0f,
+        1.0f, 1.0f,0.0f,
+        1.0f, 0.0f,0.0f,
+};
+
+GLushort indicies[] = {0, 3, 2, 0, 1, 3, 4, 6, 7, 4, 7, 5,  8, 9, 10, 8, 11, 10, 12, 13, 14, 15, 12, 14, 16, 17, 18, 16, 19, 18, 20, 21, 22, 20, 23, 22};
+
 
 /* [loadShader] */
 GLuint loadShader(GLenum shaderType, const char* shaderSource) {
@@ -147,11 +199,14 @@ JNIEXPORT void JNICALL loadShaders(JNIEnv* env, jobject obj) {
 	env->SetIntField(obj, shaderProgram, program);
 }
 
+int angle=0;
+
 JNIEXPORT void JNICALL Java_dugu9sword_esplayer_VideoTextureSurfaceRenderer_nativeDrawTexture(
 		JNIEnv* env, jobject obj) {
 
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClearColor(1.0f, 1.0f, 1.0f, 0.5f);
+	glEnable(GL_DEPTH_TEST);
+	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
 	glViewport(0, 0, width, height);
 
@@ -162,18 +217,32 @@ JNIEXPORT void JNICALL Java_dugu9sword_esplayer_VideoTextureSurfaceRenderer_nati
 	int positionHandle = glGetAttribLocation(program, "vPosition");
 	int textureTranformHandle = glGetUniformLocation(program,
 			"textureTransform");
+	int modelViewMatrixHandle = glGetUniformLocation(program,
+				"modelViewMatrix");
+	int projectionMatrixHandle = glGetUniformLocation(program,
+				"projectionMatrix");
 
+	float projectionMatrix[16];
+	float modelViewMatrix[16];
+	matrixPerspective(projectionMatrix, 45, (float)width / (float)height, 0.1f, 100);
+	matrixIdentityFunction(modelViewMatrix);
+    matrixRotateX(modelViewMatrix, ++angle);
+    matrixRotateY(modelViewMatrix, ++angle);
+	matrixTranslate(modelViewMatrix,0.0f,0.0f,-5.0f);
+
+    glUniformMatrix4fv(projectionMatrixHandle, 1, GL_FALSE,projectionMatrix);
+    glUniformMatrix4fv(modelViewMatrixHandle, 1, GL_FALSE, modelViewMatrix);
 
 
 	glEnableVertexAttribArray(positionHandle);
-	glVertexAttribPointer(positionHandle, 3, GL_FLOAT, false, 4 * 3, vertices);
+	glVertexAttribPointer(positionHandle, 3, GL_FLOAT, false, 0, vertices);
 
 	glBindTexture(GL_TEXTURE0, textures[0]);
 	glActiveTexture(GL_TEXTURE0);
 
 	glUniform1i(textureParamHandle, 0);
 	glEnableVertexAttribArray(textureCoordinateHandle);
-	glVertexAttribPointer(textureCoordinateHandle, 4, GL_FLOAT, false, 0,
+	glVertexAttribPointer(textureCoordinateHandle, 3, GL_FLOAT, false, 0,
 			textureCoords);
 
 	jclass clazz = env->GetObjectClass(obj);
@@ -188,7 +257,8 @@ JNIEXPORT void JNICALL Java_dugu9sword_esplayer_VideoTextureSurfaceRenderer_nati
 	env->ReleaseFloatArrayElements(jfa_videoTextureTransform,
 			v_videoTextureTransform, JNI_ABORT);
 
-	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+//	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, indicies);
 	glDisableVertexAttribArray(positionHandle);
 	glDisableVertexAttribArray(textureCoordinateHandle);
 }
