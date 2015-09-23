@@ -37,6 +37,12 @@ static const char* FRAGMENT_SHADER =
 				"}";
 /* [Fragment source] */
 
+const GLfloat vertices[] = { -1.0f, -1.0f, 0.0f, -1.0f, 1.0f, 0.0f, 1.0f,
+		1.0f, 0.0f, 1.0f, -1.0f, 0.0f };
+
+const GLfloat textureCoords[] = { 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+		1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f };
+
 /* [loadShader] */
 GLuint loadShader(GLenum shaderType, const char* shaderSource) {
 	GLuint shader = glCreateShader(shaderType);
@@ -157,8 +163,7 @@ JNIEXPORT void JNICALL Java_dugu9sword_esplayer_VideoTextureSurfaceRenderer_nati
 	int textureTranformHandle = glGetUniformLocation(program,
 			"textureTransform");
 
-	const GLfloat vertices[] = { -1.0f, -1.0f, 0.0f, -1.0f, 1.0f, 0.0f, 1.0f,
-			1.0f, 0.0f, 1.0f, -1.0f, 0.0f };
+
 
 	glEnableVertexAttribArray(positionHandle);
 	glVertexAttribPointer(positionHandle, 3, GL_FLOAT, false, 4 * 3, vertices);
@@ -167,8 +172,6 @@ JNIEXPORT void JNICALL Java_dugu9sword_esplayer_VideoTextureSurfaceRenderer_nati
 	glActiveTexture(GL_TEXTURE0);
 
 	glUniform1i(textureParamHandle, 0);
-	const GLfloat textureCoords[] = { 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-			1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f };
 	glEnableVertexAttribArray(textureCoordinateHandle);
 	glVertexAttribPointer(textureCoordinateHandle, 4, GL_FLOAT, false, 0,
 			textureCoords);
