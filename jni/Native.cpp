@@ -19,7 +19,7 @@ static const char* VERTEX_SHADER = "attribute vec4 vPosition;"
 		"varying vec2 v_TexCoordinate;"
 
 		"void main () {"
-		"    v_TexCoordinate = (vTexCoordinate).xy;"
+		"    v_TexCoordinate = (textureTransform*vTexCoordinate).xy;"
 		"    gl_Position = vPosition;"
 		"}";
 /* [Vertex source] */
@@ -116,12 +116,10 @@ GLuint createProgram(const char* vertexSource, const char * fragmentSource) {
 }
 /* [createProgram] */
 
-
 GLuint program;
-unsigned int textures[1]={0};
+unsigned int textures[1] = { 0 };
 int width;
 int height;
-
 
 extern "C" {
 JNIEXPORT void JNICALL Java_dugu9sword_esplayer_VideoTextureSurfaceRenderer_nativeDrawTexture(
@@ -152,12 +150,10 @@ JNIEXPORT void JNICALL Java_dugu9sword_esplayer_VideoTextureSurfaceRenderer_nati
 	glViewport(0, 0, width, height);
 
 	glUseProgram(program);
-	int textureParamHandle = glGetUniformLocation(program,
-			"texture");
+	int textureParamHandle = glGetUniformLocation(program, "texture");
 	int textureCoordinateHandle = glGetAttribLocation(program,
 			"vTexCoordinate");
-	int positionHandle = glGetAttribLocation(program,
-			"vPosition");
+	int positionHandle = glGetAttribLocation(program, "vPosition");
 	int textureTranformHandle = glGetUniformLocation(program,
 			"textureTransform");
 
@@ -177,8 +173,14 @@ JNIEXPORT void JNICALL Java_dugu9sword_esplayer_VideoTextureSurfaceRenderer_nati
 	glVertexAttribPointer(textureCoordinateHandle, 4, GL_FLOAT, false, 0,
 			textureCoords);
 
-//	glUniformMatrix4fv(textureTranformHandle, 1, false, videoTextureTransform,
-//			0);
+	jclass clazz=env->GetObjectClass(obj);
+	jfieldID f_videoTextureTransform=env->GetFieldID(clazz,"videoTextureTransform","[F");
+	jfloatArray jfa_videoTextureTransform=(jfloatArray)env->GetObjectField(obj,f_videoTextureTransform);
+	jfloat* v_videoTextureTransform=env->GetFloatArrayElements(jfa_videoTextureTransform,0);
+	glUniformMatrix4fv(textureTranformHandle, 1, false, v_videoTextureTransform);
+	env->ReleaseFloatArrayElements(jfa_videoTextureTransform,v_videoTextureTransform,JNI_ABORT);
+
+
 
 	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 	glDisableVertexAttribArray(positionHandle);
