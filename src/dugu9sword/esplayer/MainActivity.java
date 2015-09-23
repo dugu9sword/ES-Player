@@ -40,7 +40,6 @@ import java.io.IOException;
     private void playVideo() {
         if (mediaPlayer == null) {
             videoRenderer = new VideoTextureSurfaceRenderer(this, textureView.getSurfaceTexture(), surfaceWidth, surfaceHeight);
-//        	videoRenderer=new GLSurfaceRenderer(textureView.getSurfaceTexture(), surfaceWidth, surfaceHeight);
         	surface = new Surface(videoRenderer.getSurfaceTexture());
             initMediaPlayer();
         }

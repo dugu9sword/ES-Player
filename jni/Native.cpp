@@ -117,7 +117,7 @@ GLuint createProgram(const char* vertexSource, const char * fragmentSource) {
 /* [createProgram] */
 
 GLuint program;
-unsigned int textures[1] = { 0 };
+unsigned int* textures;
 int width;
 int height;
 
@@ -173,14 +173,17 @@ JNIEXPORT void JNICALL Java_dugu9sword_esplayer_VideoTextureSurfaceRenderer_nati
 	glVertexAttribPointer(textureCoordinateHandle, 4, GL_FLOAT, false, 0,
 			textureCoords);
 
-	jclass clazz=env->GetObjectClass(obj);
-	jfieldID f_videoTextureTransform=env->GetFieldID(clazz,"videoTextureTransform","[F");
-	jfloatArray jfa_videoTextureTransform=(jfloatArray)env->GetObjectField(obj,f_videoTextureTransform);
-	jfloat* v_videoTextureTransform=env->GetFloatArrayElements(jfa_videoTextureTransform,0);
-	glUniformMatrix4fv(textureTranformHandle, 1, false, v_videoTextureTransform);
-	env->ReleaseFloatArrayElements(jfa_videoTextureTransform,v_videoTextureTransform,JNI_ABORT);
-
-
+	jclass clazz = env->GetObjectClass(obj);
+	jfieldID f_videoTextureTransform = env->GetFieldID(clazz,
+			"videoTextureTransform", "[F");
+	jfloatArray jfa_videoTextureTransform = (jfloatArray) env->GetObjectField(
+			obj, f_videoTextureTransform);
+	jfloat* v_videoTextureTransform = env->GetFloatArrayElements(
+			jfa_videoTextureTransform, 0);
+	glUniformMatrix4fv(textureTranformHandle, 1, false,
+			v_videoTextureTransform);
+	env->ReleaseFloatArrayElements(jfa_videoTextureTransform,
+			v_videoTextureTransform, JNI_ABORT);
 
 	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 	glDisableVertexAttribArray(positionHandle);
@@ -191,6 +194,18 @@ JNIEXPORT void JNICALL Java_dugu9sword_esplayer_VideoTextureSurfaceRenderer_nati
 		JNIEnv* env, jobject obj, jint w, jint h) {
 	width = w;
 	height = h;
+
+	/*
+	 * 把java端的textures数组取过来
+	 */
+	jclass clazz = env->GetObjectClass(obj);
+	jfieldID f_textures = env->GetFieldID(clazz,
+			"textures", "[I");
+	jintArray jia_textures = (jintArray) env->GetObjectField(
+			obj, f_textures);
+	textures = (unsigned int*)env->GetIntArrayElements(jia_textures, 0);
+
+
 	setupTexture(env, obj);
 	loadShaders(env, obj);
 }
